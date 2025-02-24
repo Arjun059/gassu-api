@@ -2,9 +2,7 @@ package utils
 
 import (
 	"errors"
-	"fmt"
 	"log"
-	"net/http"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -44,28 +42,5 @@ func VerifyToken(tokenString string) error {
 	} else {
 		log.Printf("Invalid token or claims: %v", token)
 		return errors.New("invalid token or claim")
-	}
-}
-
-// Inline middleware example (logging)
-func WithAuth(next http.HandlerFunc) http.HandlerFunc {
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		tokenString := r.Header.Get("Authorization")
-		if tokenString == "" {
-			w.WriteHeader(http.StatusUnauthorized)
-			fmt.Fprint(w, "Missing authorization header")
-			return
-		}
-		tokenString = tokenString[len("Bearer "):]
-
-		err := VerifyToken(tokenString)
-		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			fmt.Fprint(w, "Invalid token")
-			return
-		}
-
-		next(w, r)
 	}
 }

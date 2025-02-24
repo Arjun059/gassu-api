@@ -2,12 +2,15 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"gassu/internal/models"
 	utils "gassu/internal/utils"
 	"log"
 	"net/http"
+	"strconv"
 
+	"github.com/gorilla/mux"
 	"gorm.io/gorm"
 )
 
@@ -21,8 +24,28 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(mux.Vars(r)["id"])
+
+	if err != nil {
+		http.Error(w, "internal server error", http.StatusBadRequest)
+		return
+	}
+
+	var user models.User
+
+	if err := h.DB.First(&user, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			http.Error(w, fmt.Sprintf("Not Found User With Id  %d", id), http.StatusNotFound)
+			return
+		}
+		http.Error(w, "internal server error", http.StatusBadRequest)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "User Get")
+	json.NewEncoder(w).Encode(&user)
+
+	fmt.Println("User Get after json response")
 }
 
 func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
@@ -69,7 +92,7 @@ func (h *UserHandler) SigninUser(w http.ResponseWriter, r *http.Request) {
 	var body models.User
 	json.NewDecoder(r.Body).Decode(&body)
 
-	var user *models.User
+	var user models.User
 
 	log.Printf("Decoded body: %+v\n", body)
 

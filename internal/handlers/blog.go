@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"gassu/internal/models"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -24,6 +25,7 @@ func (bh *BlogHandler) CreateBlog(w http.ResponseWriter, r *http.Request) {
 
 	// Decode the request body and handle any potential errors
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		log.Println("Error:", err)
 		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
 		return
 	}
@@ -58,15 +60,15 @@ func (bh *BlogHandler) UpdateBlog(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := bh.DB.Model(&models.Blog{}).Where("Id = ? ", id).Updates(&body).Error; err != nil {
-		fmt.Println("this is updtae erro ", err)
+		fmt.Println("this is update error ", err)
 		http.Error(w, "Error Occur", http.StatusInternalServerError)
 		return
 	}
 
 	var updatedBlog models.Blog
 
-	if err := bh.DB.First(&updatedBlog, id).Error; err != nil {
-		fmt.Println("this is updtae erro ", err)
+	if err := bh.DB.Preload("User").First(&updatedBlog, id).Error; err != nil {
+		fmt.Println("this is update error ", err)
 		http.Error(w, "Error Occur", http.StatusInternalServerError)
 		return
 	}
@@ -88,12 +90,12 @@ func (bh *BlogHandler) GetBlog(w http.ResponseWriter, r *http.Request) {
 
 	var blog models.Blog
 
-	if err := bh.DB.First(&blog, id).Error; err != nil {
+	if err := bh.DB.Preload("User").First(&blog, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			http.Error(w, "Blog not found", http.StatusBadRequest)
 			return
 		}
-		http.Error(w, "Internal server ERror", http.StatusBadRequest)
+		http.Error(w, "Internal server Error", http.StatusBadRequest)
 		return
 	}
 

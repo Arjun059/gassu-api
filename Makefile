@@ -13,3 +13,6 @@ test:
 
 clean:
 	rm -rf bin/
+
+dev:
+	CompileDaemon --build="go build -o gassu.exe cmd/api/main.go" --command="./gassu.exe" --polling
