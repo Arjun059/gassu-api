@@ -9,10 +9,18 @@ start: build
 	./bin/api
 
 test:
-	go test ./...
+	go test ./tests -v
 
-clean:
-	rm -rf bin/
+test.fresh:
+	go clean -testcache
+	go test ./tests
+
+clean.build:
+	rm -rf ./bin/**
+
+clean.test:
+	go clean -testcache
 
 dev:
 	CompileDaemon --build="go build -o gassu.exe cmd/api/main.go" --command="./gassu.exe" --polling
+
