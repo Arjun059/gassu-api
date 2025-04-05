@@ -101,10 +101,11 @@ func (ph *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ph *ProductHandler) ListProduct(w http.ResponseWriter, r *http.Request) {
+	a, b := r.URL.Query().Get("hello"), r.URL.Query().Get("nice")
 	var products []models.Product
 
 	if err := ph.DB.Find(&products).Error; err != nil {
-		http.Error(w, "Internal server ERror", http.StatusBadRequest)
+		http.Error(w, "Internal Server ERror", http.StatusBadRequest)
 		return
 	}
 
