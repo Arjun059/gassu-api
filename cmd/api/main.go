@@ -2,9 +2,6 @@ package main
 
 import (
 	"fmt"
-	handlers "gassu/internal/handlers"
-	"gassu/internal/models"
-	"gassu/internal/utils"
 	"log"
 	"net/http"
 	"os"
@@ -12,56 +9,72 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
+	"context"
+	// "github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+import "gassu/internal/db/sqlc"
+import "github.com/jackc/pgx/v5/pgtype"
 
 func main() {
 	cwd, _ := os.Getwd()
 
-	err := godotenv.Load(path.Join(cwd, "config", "local.env"))
+	err := godotenv.Load(path.Join(cwd, "./internal/config", "local.env"))
 	if err != nil {
 		log.Fatalf("Failed to load evn: %v", err)
 	}
 
-	db, err := utils.InitDB()
-	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
-	}
-	// Auto-migrate  schema's
-	db.AutoMigrate(
-		&models.User{},
-		&models.Blog{},
-		&models.Product{},
-	)
+	ctx := context.Background()
 
-	userHandler := &handlers.UserHandler{DB: db}
-	blogHandler := &handlers.BlogHandler{DB: db}
-	productHandler := &handlers.ProductHandler{DB: db}
+	pool, err := pgxpool.New(ctx,
+		"postgres://postgres:arjun@localhost:5433/test")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer pool.Close()
+
+	queries := sqlc.New(pool)
 
 	r := mux.NewRouter()
 
-	r.HandleFunc("/user/get/{id}", userHandler.GetUser).Methods("GET")
-	r.HandleFunc("/user/create", userHandler.CreateUser).Methods("POST")
-	r.HandleFunc("/user/update/{id}", userHandler.UpdateUser).Methods("PUT")
-	r.HandleFunc("/user/delete/{id}", userHandler.DeleteUser).Methods("DELETE")
+	r.HandleFunc("/user/create",func(w http.ResponseWriter, r *http.Request) {
+	user, err := queries.CreateUser(ctx, sqlc.CreateUserParams{
+    Name: pgtype.Text{
+        String: "Arjun",
+        Valid:  true,
+    },
+    Email: pgtype.Text{
+        String: "arjun@example.com",
+        Valid:  true,
+    },
+})
 
-	r.HandleFunc("/user/sign-up", userHandler.SignupUser).Methods("POST")
-	r.HandleFunc("/user/sign-in", userHandler.SigninUser).Methods("POST")
+if err != nil {
+    log.Printf("Create error: %v", err)
+    http.Error(w, err.Error(), http.StatusInternalServerError)
+    return
+}
 
-	r.HandleFunc("/blog/create", utils.WithAuth(blogHandler.CreateBlog)).Methods("POST")
-	r.HandleFunc("/blog/get/{id}", utils.WithAuth(blogHandler.GetBlog)).Methods("GET")
-	r.HandleFunc("/blog/update/{id}", utils.WithAuth(blogHandler.UpdateBlog)).Methods("PUT")
-	r.HandleFunc("/blog/delete/{id}", utils.WithAuth(blogHandler.DeleteBlog)).Methods("DELETE")
-	r.HandleFunc("/blog/list", utils.WithAuth(blogHandler.ListBlogs)).Methods("GET")
+fmt.Printf("%+v\n", user)
+	}).Methods("GET")
 
-	r.HandleFunc("/product/create", utils.WithAuth(productHandler.CreateProduct)).Methods("POST")
-	r.HandleFunc("/product/update/{id}", utils.WithAuth(productHandler.UpdateProduct)).Methods("PUT")
-	r.HandleFunc("/product/get/{id}", utils.WithAuth(productHandler.GetProduct)).Methods("GET")
-	r.HandleFunc("/product/delete/{id}", utils.WithAuth(productHandler.DeleteProduct)).Methods("DELETE")
-	r.HandleFunc("/product/list", utils.WithAuth(productHandler.ListProduct)).Methods("GET")
+	r.HandleFunc("/user/get",func(w http.ResponseWriter, r *http.Request) {
+		user, err := queries.GetUser(ctx, 1)
 
-	r.HandleFunc("/protected", utils.WithAuth(func(w http.ResponseWriter, r *http.Request) {
+		if err != nil {
+			log.Printf("GetUser error: %v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		fmt.Printf("%+v\n", user)
+		fmt.Fprintf(w, "Get user route %+v", user)
+	}).Methods("GET")
+
+	r.HandleFunc("/protected",func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "hello Protected Route")
-	})).Methods("GET")
+	}).Methods("GET")
 
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Hello, Gorilla Mux!"))
