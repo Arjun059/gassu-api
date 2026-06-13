@@ -24,5 +24,6 @@ func (m *UserModule) RegisterRoutes() {
 
 	g := m.echo.Group("/users")
 	g.POST("", handler.createUser)
-	g.GET("/:id", handler.getUser)
+	g.GET("/list", handler.getUserList)
+	g.GET("/single/:id", handler.getUser)
 }

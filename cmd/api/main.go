@@ -52,8 +52,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println("dbtime", tz)
-
 	e := echo.New()
 
 	users.NewUserModule(e, queries).RegisterRoutes()

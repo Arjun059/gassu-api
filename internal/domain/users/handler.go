@@ -94,3 +94,32 @@ func (h *UserHandler) updateUser(c echo.Context) error {
 		"message": "User updated successfully!",
 	})
 }
+
+func (h *UserHandler) getUserList(c echo.Context) error {
+	ctx := context.Background()
+
+	userID, _ := strconv.ParseInt(c.QueryParam("id"), 10, 64)
+
+	allowed, perErro := h.Querier.HasPermission(ctx, sqlc.HasPermissionParams{
+		UserID:   userID,
+		Resource: "employee",
+		Action:   "read",
+	})
+
+	fmt.Println("allowed: ", allowed)
+	fmt.Println("perErro: ", perErro)
+
+	users, err := h.Querier.ListUsers(ctx)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return c.JSON(http.StatusNotFound, map[string]string{
+				"error": "No user found!",
+			})
+		}
+		log.Printf("get error: %v", err)
+		return err
+	}
+
+	return c.JSON(http.StatusOK, users)
+}
