@@ -4,31 +4,41 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"path"
 
-	"github.com/gorilla/mux"
-	"github.com/joho/godotenv"
 	"context"
-	// "github.com/jackc/pgx/v5"
+
+	"github.com/joho/godotenv"
+	"github.com/labstack/echo"
+
+	"gassu/internal/config"
+	"gassu/internal/db/sqlc"
+
+	"gassu/internal/domain/permission"
+	"gassu/internal/domain/roles"
+	"gassu/internal/domain/users"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-import "gassu/internal/db/sqlc"
-import "github.com/jackc/pgx/v5/pgtype"
-
 func main() {
-	cwd, _ := os.Getwd()
-
-	err := godotenv.Load(path.Join(cwd, "./internal/config", "local.env"))
+	// decide which env to use
+	err := godotenv.Load("local.env")
 	if err != nil {
 		log.Fatalf("Failed to load evn: %v", err)
 	}
 
+	config, _ := config.Load()
 	ctx := context.Background()
 
-	pool, err := pgxpool.New(ctx,
-		"postgres://postgres:arjun@localhost:5433/test")
+	pgxConfig, err := pgxpool.ParseConfig(config.POSTGRES_DB_URI)
+	if err != nil {
+		panic(err)
+	}
+
+	// Set the PostgreSQL session timezone to UTC
+	pgxConfig.ConnConfig.RuntimeParams["timezone"] = "UTC"
+
+	pool, err := pgxpool.NewWithConfig(ctx, pgxConfig)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -36,50 +46,35 @@ func main() {
 
 	queries := sqlc.New(pool)
 
-	r := mux.NewRouter()
+	var tz string
+	_ = pool.QueryRow(ctx, "SHOW TIME ZONE").Scan(&tz)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	r.HandleFunc("/user/create",func(w http.ResponseWriter, r *http.Request) {
-	user, err := queries.CreateUser(ctx, sqlc.CreateUserParams{
-    Name: pgtype.Text{
-        String: "Arjun",
-        Valid:  true,
-    },
-    Email: pgtype.Text{
-        String: "arjun@example.com",
-        Valid:  true,
-    },
-})
+	fmt.Println("dbtime", tz)
 
-if err != nil {
-    log.Printf("Create error: %v", err)
-    http.Error(w, err.Error(), http.StatusInternalServerError)
-    return
-}
+	e := echo.New()
 
-fmt.Printf("%+v\n", user)
-	}).Methods("GET")
+	users.NewUserModule(e, queries).RegisterRoutes()
+	roles.NewRoleModule(e, queries).RegisterRoutes()
+	permission.NewPermissionModule(e, queries).RegisterRoutes()
 
-	r.HandleFunc("/user/get",func(w http.ResponseWriter, r *http.Request) {
+	e.GET("/", func(c echo.Context) error {
 		user, err := queries.GetUser(ctx, 1)
 
 		if err != nil {
 			log.Printf("GetUser error: %v", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+			return err
 		}
 
 		fmt.Printf("%+v\n", user)
-		fmt.Fprintf(w, "Get user route %+v", user)
-	}).Methods("GET")
-
-	r.HandleFunc("/protected",func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, "hello Protected Route")
-	}).Methods("GET")
-
-	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Hello, Gorilla Mux!"))
+		return c.String(http.StatusOK, "Hello, World!")
 	})
 
 	fmt.Println("Server running at: http://localhost:8000")
-	http.ListenAndServe(":8000", r)
+	if err := e.Start(":8000"); err != nil {
+		e.Logger.Error("failed to start server", "error", err)
+	}
+
 }

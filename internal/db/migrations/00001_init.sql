@@ -1,36 +1,41 @@
 -- +goose Up
 
-CREATE TABLE users (
-    id BIGSERIAL PRIMARY KEY,
-    name VARCHAR(255)
-);
-
 CREATE TABLE roles (
     id BIGSERIAL PRIMARY KEY,
-    name VARCHAR(255)
+    name TEXT NOT NULL UNIQUE,
+    hierarchy BIGINT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE users (
+    id BIGSERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    role_id BIGINT NOT NULL,
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    
+    FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
 );
 
 CREATE TABLE permissions (
     id BIGSERIAL PRIMARY KEY,
-    resource VARCHAR(255),
-    action VARCHAR(255),
+    resource TEXT NOT NULL,
+    action TEXT NOT NULL,
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
     UNIQUE (resource, action)
-);
-
-CREATE TABLE user_roles (
-    user_id BIGINT NOT NULL,
-    role_id BIGINT NOT NULL,
-
-    PRIMARY KEY (user_id, role_id),
-
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
 );
 
 CREATE TABLE role_permissions (
     role_id BIGINT NOT NULL,
     permission_id BIGINT NOT NULL,
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
     PRIMARY KEY (role_id, permission_id),
 
@@ -41,7 +46,6 @@ CREATE TABLE role_permissions (
 -- +goose Down
 
 DROP TABLE IF EXISTS role_permissions;
-DROP TABLE IF EXISTS user_roles;
+DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS permissions;
 DROP TABLE IF EXISTS roles;
-DROP TABLE IF EXISTS users;

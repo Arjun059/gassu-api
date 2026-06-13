@@ -7,43 +7,37 @@ package sqlc
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO public.users (
-  name,
-  email,
-  role
+INSERT INTO users (
+  name, role_id
 ) VALUES (
-  $1,
-  $2,
-  $3
+  $1, $2
 )
-RETURNING id, name, email, role
+RETURNING id, name, role_id, created_at, updated_at
 `
 
 type CreateUserParams struct {
-	Name  pgtype.Text `json:"name"`
-	Email pgtype.Text `json:"email"`
-	Role  pgtype.Text `json:"role"`
+	Name   string `json:"name"`
+	RoleID int64  `json:"role_id"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRow(ctx, createUser, arg.Name, arg.Email, arg.Role)
+	row := q.db.QueryRow(ctx, createUser, arg.Name, arg.RoleID)
 	var i User
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.Email,
-		&i.Role,
+		&i.RoleID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const deleteUser = `-- name: DeleteUser :exec
-DELETE FROM public.users
+DELETE FROM users
 WHERE id = $1
 `
 
@@ -53,10 +47,8 @@ func (q *Queries) DeleteUser(ctx context.Context, id int64) error {
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, name, email, role
-FROM public.users
-WHERE id = $1
-LIMIT 1
+SELECT id, name, role_id, created_at, updated_at FROM users
+WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
@@ -65,20 +57,20 @@ func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.Email,
-		&i.Role,
+		&i.RoleID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
-const listUser = `-- name: ListUser :many
-SELECT id, name, email, role
-FROM public.users
+const listUsers = `-- name: ListUsers :many
+SELECT id, name, role_id, created_at, updated_at FROM users
 ORDER BY name
 `
 
-func (q *Queries) ListUser(ctx context.Context) ([]User, error) {
-	rows, err := q.db.Query(ctx, listUser)
+func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
+	rows, err := q.db.Query(ctx, listUsers)
 	if err != nil {
 		return nil, err
 	}
@@ -89,8 +81,9 @@ func (q *Queries) ListUser(ctx context.Context) ([]User, error) {
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
-			&i.Email,
-			&i.Role,
+			&i.RoleID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -103,20 +96,19 @@ func (q *Queries) ListUser(ctx context.Context) ([]User, error) {
 }
 
 const updateUser = `-- name: UpdateUser :exec
-UPDATE public.users
-SET
-  name = $2,
-  role = $3
+UPDATE users
+  set name = $2,
+  role_id = $3
 WHERE id = $1
 `
 
 type UpdateUserParams struct {
-	ID   int64       `json:"id"`
-	Name pgtype.Text `json:"name"`
-	Role pgtype.Text `json:"role"`
+	ID     int64  `json:"id"`
+	Name   string `json:"name"`
+	RoleID int64  `json:"role_id"`
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {
-	_, err := q.db.Exec(ctx, updateUser, arg.ID, arg.Name, arg.Role)
+	_, err := q.db.Exec(ctx, updateUser, arg.ID, arg.Name, arg.RoleID)
 	return err
 }

@@ -9,27 +9,53 @@ import (
 )
 
 type Permission struct {
-	ID       int64       `json:"id"`
-	Resource pgtype.Text `json:"resource"`
-	Action   pgtype.Text `json:"action"`
+	ID        int64              `json:"id"`
+	Resource  string             `json:"resource"`
+	Action    string             `json:"action"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
+type PolicyCondition struct {
+	ID        int64              `json:"id"`
+	RuleID    int64              `json:"rule_id"`
+	FieldName string             `json:"field_name"`
+	Operator  string             `json:"operator"`
+	ValueType string             `json:"value_type"`
+	Value     string             `json:"value"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
+type PolicyRule struct {
+	ID              int64              `json:"id"`
+	RoleID          int64              `json:"role_id"`
+	PermissionID    int64              `json:"permission_id"`
+	ParentRuleID    pgtype.Int8        `json:"parent_rule_id"`
+	LogicalOperator string             `json:"logical_operator"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
 }
 
 type Role struct {
-	ID   int64       `json:"id"`
-	Name pgtype.Text `json:"name"`
+	ID        int64              `json:"id"`
+	Name      string             `json:"name"`
+	Hierarchy int64              `json:"hierarchy"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 }
 
 type RolePermission struct {
-	RoleID       int64 `json:"role_id"`
-	PermissionID int64 `json:"permission_id"`
+	RoleID       int64              `json:"role_id"`
+	PermissionID int64              `json:"permission_id"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
 }
 
 type User struct {
-	ID   int64       `json:"id"`
-	Name pgtype.Text `json:"name"`
-}
-
-type UserRole struct {
-	UserID int64 `json:"user_id"`
-	RoleID int64 `json:"role_id"`
+	ID        int64              `json:"id"`
+	Name      string             `json:"name"`
+	RoleID    int64              `json:"role_id"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 }

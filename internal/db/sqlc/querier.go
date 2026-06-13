@@ -9,7 +9,22 @@ import (
 )
 
 type Querier interface {
+	CreatePermission(ctx context.Context, arg CreatePermissionParams) (Permission, error)
+	CreateRole(ctx context.Context, arg CreateRoleParams) (Role, error)
+	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	DeletePermission(ctx context.Context, id int64) error
+	DeleteRole(ctx context.Context, id int64) error
+	DeleteUser(ctx context.Context, id int64) error
+	GetPermission(ctx context.Context, id int64) (Permission, error)
+	GetRole(ctx context.Context, id int64) (Role, error)
+	GetUser(ctx context.Context, id int64) (User, error)
 	HasPermission(ctx context.Context, arg HasPermissionParams) (bool, error)
+	ListPermission(ctx context.Context) ([]Permission, error)
+	ListRoles(ctx context.Context) ([]Role, error)
+	ListUsers(ctx context.Context) ([]User, error)
+	UpdatePermission(ctx context.Context, arg UpdatePermissionParams) error
+	UpdateRole(ctx context.Context, arg UpdateRoleParams) error
+	UpdateUser(ctx context.Context, arg UpdateUserParams) error
 }
 
 var _ Querier = (*Queries)(nil)
