@@ -2,7 +2,8 @@
 
 CREATE TABLE roles (
     id BIGSERIAL PRIMARY KEY,
-    name TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    alias TEXT NOT NULL UNIQUE,
     hierarchy BIGINT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
