@@ -7,32 +7,73 @@ package sqlc
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const hasPermission = `-- name: HasPermission :one
-SELECT EXISTS (
-    SELECT 1
-    FROM users usr
-    INNER JOIN role_permissions rp
-        ON usr.role_id = rp.role_id
-    INNER JOIN permissions p
-        ON rp.permission_id = p.id
+SELECT
+    usr.id,
+    usr.name,
+    usr.role_id,
+    usr.created_at,
+    usr.updated_at,
+
+    r.resource_id,
+    r.resource,
+    r.action,
+
+    CAST(r.resource_id IS NOT NULL AS boolean) AS has_permission
+FROM users usr
+LEFT JOIN LATERAL (
+    SELECT
+        p.id AS resource_id,
+        p.resource,
+        p.action
+    FROM role_resources rr
+    JOIN resources p
+        ON rr.resource_id = p.id
     WHERE
-        usr.id = $1
-        AND p.resource = $2
-        AND p.action = $3
-) AS has_permission
+        rr.role_id = usr.role_id
+        AND p.resource = $1
+        AND p.action = $2
+    LIMIT 1
+) r ON TRUE
+WHERE
+    usr.id = $3
 `
 
 type HasPermissionParams struct {
-	UserID   int64  `json:"user_id"`
 	Resource string `json:"resource"`
 	Action   string `json:"action"`
+	UserID   int64  `json:"user_id"`
 }
 
-func (q *Queries) HasPermission(ctx context.Context, arg HasPermissionParams) (bool, error) {
-	row := q.db.QueryRow(ctx, hasPermission, arg.UserID, arg.Resource, arg.Action)
-	var has_permission bool
-	err := row.Scan(&has_permission)
-	return has_permission, err
+type HasPermissionRow struct {
+	ID            int64              `json:"id"`
+	Name          string             `json:"name"`
+	RoleID        pgtype.Int8        `json:"role_id"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+	ResourceID    int64              `json:"resource_id"`
+	Resource      string             `json:"resource"`
+	Action        string             `json:"action"`
+	HasPermission bool               `json:"has_permission"`
+}
+
+func (q *Queries) HasPermission(ctx context.Context, arg HasPermissionParams) (HasPermissionRow, error) {
+	row := q.db.QueryRow(ctx, hasPermission, arg.Resource, arg.Action, arg.UserID)
+	var i HasPermissionRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.RoleID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ResourceID,
+		&i.Resource,
+		&i.Action,
+		&i.HasPermission,
+	)
+	return i, err
 }

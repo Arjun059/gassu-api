@@ -7,6 +7,8 @@ package sqlc
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -15,12 +17,12 @@ INSERT INTO users (
 ) VALUES (
   $1, $2
 )
-RETURNING id, name, role_id, created_at, updated_at
+RETURNING id, name, role_id, office_id, department_id, report_to, created_at, updated_at
 `
 
 type CreateUserParams struct {
-	Name   string `json:"name"`
-	RoleID int64  `json:"role_id"`
+	Name   string      `json:"name"`
+	RoleID pgtype.Int8 `json:"role_id"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
@@ -30,6 +32,9 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.ID,
 		&i.Name,
 		&i.RoleID,
+		&i.OfficeID,
+		&i.DepartmentID,
+		&i.ReportTo,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -47,7 +52,7 @@ func (q *Queries) DeleteUser(ctx context.Context, id int64) error {
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, name, role_id, created_at, updated_at FROM users
+SELECT id, name, role_id, office_id, department_id, report_to, created_at, updated_at FROM users
 WHERE id = $1 LIMIT 1
 `
 
@@ -58,6 +63,9 @@ func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
 		&i.ID,
 		&i.Name,
 		&i.RoleID,
+		&i.OfficeID,
+		&i.DepartmentID,
+		&i.ReportTo,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -65,12 +73,57 @@ func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, name, role_id, created_at, updated_at FROM users
-ORDER BY name
+SELECT
+    u.id,
+    u.name,
+    u.role_id,
+    u.office_id,
+    u.department_id,
+    u.report_to,
+    u.created_at,
+    u.updated_at
+FROM users u
+WHERE EXISTS (
+    SELECT 1
+        FROM filter_users(
+        $1,
+        $2,
+
+        $3::bigint[],
+        $4::bigint[],
+        $5::bigint[],
+        $6::text[],
+
+        $7,
+        $8
+    ) f
+    WHERE f.user_id = u.id
+)
+ORDER BY u.id DESC
 `
 
-func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
-	rows, err := q.db.Query(ctx, listUsers)
+type ListUsersParams struct {
+	Scope           string      `json:"scope"`
+	ManagerID       pgtype.Int8 `json:"manager_id"`
+	OfficeIds       []int64     `json:"office_ids"`
+	DepartmentIds   []int64     `json:"department_ids"`
+	CompanyIds      []int64     `json:"company_ids"`
+	EmploymentTypes []string    `json:"employment_types"`
+	MyHierarchy     pgtype.Int8 `json:"my_hierarchy"`
+	HierarchyMode   pgtype.Text `json:"hierarchy_mode"`
+}
+
+func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error) {
+	rows, err := q.db.Query(ctx, listUsers,
+		arg.Scope,
+		arg.ManagerID,
+		arg.OfficeIds,
+		arg.DepartmentIds,
+		arg.CompanyIds,
+		arg.EmploymentTypes,
+		arg.MyHierarchy,
+		arg.HierarchyMode,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -82,6 +135,9 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 			&i.ID,
 			&i.Name,
 			&i.RoleID,
+			&i.OfficeID,
+			&i.DepartmentID,
+			&i.ReportTo,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -103,9 +159,9 @@ WHERE id = $1
 `
 
 type UpdateUserParams struct {
-	ID     int64  `json:"id"`
-	Name   string `json:"name"`
-	RoleID int64  `json:"role_id"`
+	ID     int64       `json:"id"`
+	Name   string      `json:"name"`
+	RoleID pgtype.Int8 `json:"role_id"`
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {

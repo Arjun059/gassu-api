@@ -13,7 +13,8 @@ import (
 	"gassu/internal/config"
 	"gassu/internal/db/sqlc"
 
-	"gassu/internal/domain/permission"
+	auth "gassu/internal/auth"
+	"gassu/internal/domain/resources"
 	"gassu/internal/domain/roles"
 	"gassu/internal/domain/users"
 
@@ -54,9 +55,14 @@ func main() {
 
 	e := echo.New()
 
-	users.NewUserModule(e, queries).RegisterRoutes()
-	roles.NewRoleModule(e, queries).RegisterRoutes()
-	permission.NewPermissionModule(e, queries).RegisterRoutes()
+	api := e.Group("/api")
+	api.Use(auth.JWTMiddleware)
+
+	publicApi := e.Group("")
+
+	users.NewUserModule(publicApi, queries).RegisterRoutes()
+	roles.NewRoleModule(api, queries).RegisterRoutes()
+	resources.NewPermissionModule(api, queries).RegisterRoutes()
 
 	e.GET("/", func(c echo.Context) error {
 		user, err := queries.GetUser(ctx, 1)

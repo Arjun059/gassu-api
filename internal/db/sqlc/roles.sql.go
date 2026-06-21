@@ -15,7 +15,7 @@ INSERT INTO roles (
 ) VALUES (
   $1, $2
 )
-RETURNING id, name, hierarchy, created_at, updated_at
+RETURNING id, name, identifier, hierarchy, created_at, updated_at
 `
 
 type CreateRoleParams struct {
@@ -29,6 +29,7 @@ func (q *Queries) CreateRole(ctx context.Context, arg CreateRoleParams) (Role, e
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
+		&i.Identifier,
 		&i.Hierarchy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -47,7 +48,7 @@ func (q *Queries) DeleteRole(ctx context.Context, id int64) error {
 }
 
 const getRole = `-- name: GetRole :one
-SELECT id, name, hierarchy, created_at, updated_at FROM roles
+SELECT id, name, identifier, hierarchy, created_at, updated_at FROM roles
 WHERE id = $1 LIMIT 1
 `
 
@@ -57,6 +58,7 @@ func (q *Queries) GetRole(ctx context.Context, id int64) (Role, error) {
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
+		&i.Identifier,
 		&i.Hierarchy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -65,7 +67,7 @@ func (q *Queries) GetRole(ctx context.Context, id int64) (Role, error) {
 }
 
 const listRoles = `-- name: ListRoles :many
-SELECT id, name, hierarchy, created_at, updated_at FROM roles
+SELECT id, name, identifier, hierarchy, created_at, updated_at FROM roles
 ORDER BY hierarchy
 `
 
@@ -81,6 +83,7 @@ func (q *Queries) ListRoles(ctx context.Context) ([]Role, error) {
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
+			&i.Identifier,
 			&i.Hierarchy,
 			&i.CreatedAt,
 			&i.UpdatedAt,

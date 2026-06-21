@@ -8,10 +8,10 @@ import (
 
 type RoleModule struct {
 	Querier sqlc.Querier
-	Echo    *echo.Echo
+	Echo    *echo.Group
 }
 
-func NewRoleModule(echo *echo.Echo, querier sqlc.Querier) *RoleModule {
+func NewRoleModule(echo *echo.Group, querier sqlc.Querier) *RoleModule {
 	return &RoleModule{
 		Querier: querier,
 		Echo:    echo,

@@ -5,10 +5,81 @@
 package sqlc
 
 import (
+	"database/sql/driver"
+	"fmt"
+
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type Permission struct {
+type PolicyEffect string
+
+const (
+	PolicyEffectALLOW PolicyEffect = "ALLOW"
+	PolicyEffectDENY  PolicyEffect = "DENY"
+)
+
+func (e *PolicyEffect) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PolicyEffect(s)
+	case string:
+		*e = PolicyEffect(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PolicyEffect: %T", src)
+	}
+	return nil
+}
+
+type NullPolicyEffect struct {
+	PolicyEffect PolicyEffect `json:"policy_effect"`
+	Valid        bool         `json:"valid"` // Valid is true if PolicyEffect is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPolicyEffect) Scan(value interface{}) error {
+	if value == nil {
+		ns.PolicyEffect, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PolicyEffect.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPolicyEffect) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PolicyEffect), nil
+}
+
+type Department struct {
+	ID        int64              `json:"id"`
+	Name      string             `json:"name"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
+type Office struct {
+	ID        int64              `json:"id"`
+	Address   string             `json:"address"`
+	City      string             `json:"city"`
+	State     string             `json:"state"`
+	Pincode   string             `json:"pincode"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
+type Policy struct {
+	ID        int64              `json:"id"`
+	Name      string             `json:"name"`
+	Effect    PolicyEffect       `json:"effect"`
+	Rules     []byte             `json:"rules"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
+type Resource struct {
 	ID        int64              `json:"id"`
 	Resource  string             `json:"resource"`
 	Action    string             `json:"action"`
@@ -16,46 +87,47 @@ type Permission struct {
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 }
 
-type PolicyCondition struct {
-	ID        int64              `json:"id"`
-	RuleID    int64              `json:"rule_id"`
-	FieldName string             `json:"field_name"`
-	Operator  string             `json:"operator"`
-	ValueType string             `json:"value_type"`
-	Value     string             `json:"value"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
-}
-
-type PolicyRule struct {
-	ID              int64              `json:"id"`
-	RoleID          int64              `json:"role_id"`
-	PermissionID    int64              `json:"permission_id"`
-	ParentRuleID    pgtype.Int8        `json:"parent_rule_id"`
-	LogicalOperator string             `json:"logical_operator"`
-	CreatedAt       pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
-}
-
 type Role struct {
-	ID        int64              `json:"id"`
-	Name      string             `json:"name"`
-	Hierarchy int64              `json:"hierarchy"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	ID         int64              `json:"id"`
+	Name       string             `json:"name"`
+	Identifier string             `json:"identifier"`
+	Hierarchy  int64              `json:"hierarchy"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
 }
 
-type RolePermission struct {
-	RoleID       int64              `json:"role_id"`
-	PermissionID int64              `json:"permission_id"`
+type RolePolicyAssignment struct {
+	ID         int64              `json:"id"`
+	RoleID     int64              `json:"role_id"`
+	ResourceID int64              `json:"resource_id"`
+	PolicyID   int64              `json:"policy_id"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
+}
+
+type RoleResource struct {
+	RoleID     int64              `json:"role_id"`
+	ResourceID int64              `json:"resource_id"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
+}
+
+type User struct {
+	ID           int64              `json:"id"`
+	Name         string             `json:"name"`
+	RoleID       pgtype.Int8        `json:"role_id"`
+	OfficeID     pgtype.Int8        `json:"office_id"`
+	DepartmentID pgtype.Int8        `json:"department_id"`
+	ReportTo     pgtype.Int8        `json:"report_to"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
 }
 
-type User struct {
-	ID        int64              `json:"id"`
-	Name      string             `json:"name"`
-	RoleID    int64              `json:"role_id"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+type UserPolicyAssignment struct {
+	ID         int64              `json:"id"`
+	UserID     int64              `json:"user_id"`
+	ResourceID int64              `json:"resource_id"`
+	PolicyID   int64              `json:"policy_id"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
 }

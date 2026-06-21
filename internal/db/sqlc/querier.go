@@ -9,20 +9,22 @@ import (
 )
 
 type Querier interface {
-	CreatePermission(ctx context.Context, arg CreatePermissionParams) (Permission, error)
+	CreateResources(ctx context.Context, arg CreateResourcesParams) (Resource, error)
 	CreateRole(ctx context.Context, arg CreateRoleParams) (Role, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
-	DeletePermission(ctx context.Context, id int64) error
+	DeleteResources(ctx context.Context, id int64) error
 	DeleteRole(ctx context.Context, id int64) error
 	DeleteUser(ctx context.Context, id int64) error
-	GetPermission(ctx context.Context, id int64) (Permission, error)
+	GetPolicies(ctx context.Context, arg GetPoliciesParams) ([]GetPoliciesRow, error)
+	GetResources(ctx context.Context, id int64) (Resource, error)
 	GetRole(ctx context.Context, id int64) (Role, error)
 	GetUser(ctx context.Context, id int64) (User, error)
-	HasPermission(ctx context.Context, arg HasPermissionParams) (bool, error)
-	ListPermission(ctx context.Context) ([]Permission, error)
+	GetUserHierarchy(ctx context.Context, userID int64) (int64, error)
+	HasPermission(ctx context.Context, arg HasPermissionParams) (HasPermissionRow, error)
+	ListResources(ctx context.Context) ([]Resource, error)
 	ListRoles(ctx context.Context) ([]Role, error)
-	ListUsers(ctx context.Context) ([]User, error)
-	UpdatePermission(ctx context.Context, arg UpdatePermissionParams) error
+	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
+	UpdateResources(ctx context.Context, arg UpdateResourcesParams) error
 	UpdateRole(ctx context.Context, arg UpdateRoleParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) error
 }

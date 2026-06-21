@@ -7,11 +7,11 @@ import (
 )
 
 type UserModule struct {
-	echo    *echo.Echo
+	echo    *echo.Group
 	querier sqlc.Querier
 }
 
-func NewUserModule(echo *echo.Echo, querier sqlc.Querier) *UserModule {
+func NewUserModule(echo *echo.Group, querier sqlc.Querier) *UserModule {
 	return &UserModule{
 		echo:    echo,
 		querier: querier,
