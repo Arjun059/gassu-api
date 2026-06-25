@@ -26,4 +26,5 @@ func (m *UserModule) RegisterRoutes() {
 	g.POST("", handler.createUser)
 	g.GET("/list", handler.getUserList)
 	g.GET("/single/:id", handler.getUser)
+	g.GET("/signin/:id", handler.signInUser)
 }

@@ -117,6 +117,7 @@ func (h *UserHandler) getUserList(c echo.Context) error {
 		Action:   "read",
 	})
 	if err != nil {
+		fmt.Print("record not found")
 		return echo.NewHTTPError(http.StatusForbidden, "permission denied")
 	}
 
@@ -126,8 +127,8 @@ func (h *UserHandler) getUserList(c echo.Context) error {
 
 	fmt.Printf("Perm %+v", perm)
 	// Access user data
-	fmt.Println(perm.ID)
-	fmt.Println(perm.Name)
+	// fmt.Println(perm.ID)
+	// fmt.Println(perm.Name)
 
 	filter, err := policy.Resolve(
 		ctx,
@@ -136,30 +137,41 @@ func (h *UserHandler) getUserList(c echo.Context) error {
 		perm.ResourceID,
 	)
 
-	if err != nil {
-		return err
-	}
+	fmt.Printf("filter %+v", filter)
 
-	users, err := h.Querier.ListUsers(ctx, sqlc.ListUsersParams{
-		Scope:           string(filter.Scope),
-		ManagerID:       pgtype.Int8{Int64: *filter.ManagerID, Valid: true},
-		OfficeIds:       filter.OfficeIDs,
-		DepartmentIds:   filter.DepartmentIDs,
-		CompanyIds:      filter.CompanyIDs,
-		EmploymentTypes: filter.EmploymentTypes,
-		MyHierarchy:     pgtype.Int8{Int64: *filter.MyHierarchy, Valid: true},
-		HierarchyMode:   pgtype.Text{String: string(*filter.HierarchyMode), Valid: filter.HierarchyMode != nil},
-	})
+	// if err != nil {
+	// 	return err
+	// }
 
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return c.JSON(http.StatusNotFound, map[string]string{
-				"error": "No user found!",
-			})
-		}
-		log.Printf("get error: %v", err)
-		return err
-	}
+	// users, err := h.Querier.ListUsers(ctx, sqlc.ListUsersParams{
+	// 	Scope:           string(filter.Scope),
+	// 	ManagerID:       pgtype.Int8{Int64: *filter.ManagerID, Valid: true},
+	// 	OfficeIds:       filter.OfficeIDs,
+	// 	DepartmentIds:   filter.DepartmentIDs,
+	// 	CompanyIds:      filter.CompanyIDs,
+	// 	EmploymentTypes: filter.EmploymentTypes,
+	// 	MyHierarchy:     pgtype.Int8{Int64: *filter.MyHierarchy, Valid: true},
+	// 	HierarchyMode:   pgtype.Text{String: string(*filter.HierarchyMode), Valid: filter.HierarchyMode != nil},
+	// })
 
-	return c.JSON(http.StatusOK, users)
+	// if err != nil {
+	// 	if errors.Is(err, pgx.ErrNoRows) {
+	// 		return c.JSON(http.StatusNotFound, map[string]string{
+	// 			"error": "No user found!",
+	// 		})
+	// 	}
+	// 	log.Printf("get error: %v", err)
+	// 	return err
+	// }
+
+	return c.JSON(http.StatusOK, map[string]string{"message": "done"})
+}
+
+func (h *UserHandler) signInUser(c echo.Context) error {
+
+	userID, _ := strconv.Atoi(c.Param("id"))
+
+	token, _ := auth.GenerateToken(int64(userID))
+
+	return c.JSON(http.StatusOK, CreateUserResponseDTO{Token: token, UserID: int64(userID)})
 }

@@ -1,39 +1,64 @@
 -- +goose Up
 
-INSERT INTO resources (id, resource, action)
+INSERT INTO resources (resource, action)
 VALUES
     -- Users
-    (1, 'users', 'create'),
-    (2, 'users', 'read'),
-    (3, 'users', 'update'),
-    (4, 'users', 'delete'),
+    ('users', 'create'),
+    ('users', 'read'),
+    ('users', 'update'),
+    ('users', 'delete'),
 
     -- Roles
-    (5, 'roles', 'create'),
-    (6, 'roles', 'read'),
-    (7, 'roles', 'update'),
-    (8, 'roles', 'delete'),
+    ('roles', 'create'),
+    ('roles', 'read'),
+    ('roles', 'update'),
+    ('roles', 'delete'),
 
     -- Policies
-    (9, 'policies', 'create'),
-    (10, 'policies', 'read'),
-    (11, 'policies', 'update'),
-    (12, 'policies', 'delete'),
+    ('policies', 'create'),
+    ('policies', 'read'),
+    ('policies', 'update'),
+    ('policies', 'delete'),
 
     -- Offices
-    (13, 'offices', 'create'),
-    (14, 'offices', 'read'),
-    (15, 'offices', 'update'),
-    (16, 'offices', 'delete'),
+    ('offices', 'create'),
+    ('offices', 'read'),
+    ('offices', 'update'),
+    ('offices', 'delete'),
 
     -- Departments
-    (17, 'departments', 'create'),
-    (18, 'departments', 'read'),
-    (19, 'departments', 'update'),
-    (20, 'departments', 'delete');
-
+    ('departments', 'create'),
+    ('departments', 'read'),
+    ('departments', 'update'),
+    ('departments', 'delete')
+ON CONFLICT (resource, action) DO NOTHING;
 
 -- +goose Down
 
 DELETE FROM resources
-WHERE id BETWEEN 1 AND 20;
+WHERE (resource, action) IN (
+    ('users', 'create'),
+    ('users', 'read'),
+    ('users', 'update'),
+    ('users', 'delete'),
+
+    ('roles', 'create'),
+    ('roles', 'read'),
+    ('roles', 'update'),
+    ('roles', 'delete'),
+
+    ('policies', 'create'),
+    ('policies', 'read'),
+    ('policies', 'update'),
+    ('policies', 'delete'),
+
+    ('offices', 'create'),
+    ('offices', 'read'),
+    ('offices', 'update'),
+    ('offices', 'delete'),
+
+    ('departments', 'create'),
+    ('departments', 'read'),
+    ('departments', 'update'),
+    ('departments', 'delete')
+);

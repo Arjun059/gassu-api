@@ -1,12 +1,14 @@
 -- +goose Up
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 CREATE TABLE offices (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     address TEXT NOT NULL,
     city TEXT NOT NULL,
     state TEXT NOT NULL,
-    pincode VARCHAR(10) NOT NULL,
+    pincode TEXT NOT NULL,
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

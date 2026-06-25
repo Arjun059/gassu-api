@@ -13,7 +13,7 @@ type PolicyRules struct {
 	DepartmentIds   []int64  `json:"department_ids"`
 	CompanyIds      []int64  `json:"company_ids"`
 	EmploymentTypes []string `json:"employment_types"`
-	HierarchyMode   string   `json:"hierarchy"`
+	HierarchyMode   string   `json:"hierarchy_mode"`
 }
 
 func Resolve(
@@ -32,6 +32,9 @@ func Resolve(
 		UserID:     userID,
 		ResourceID: resourceID,
 	})
+
+	fmt.Printf("policies %+v", policies)
+
 	if err != nil {
 		return nil, err
 	}
@@ -46,6 +49,8 @@ func Resolve(
 	marshelErro := json.Unmarshal(policy.Rules, &rules)
 
 	fmt.Println(marshelErro)
+
+	fmt.Printf("rules %+v", rules)
 
 	return &Filter{
 		Scope: Scope(rules.Scope),

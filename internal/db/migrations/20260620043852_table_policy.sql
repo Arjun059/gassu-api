@@ -6,16 +6,16 @@ CREATE TYPE policy_effect AS ENUM (
 );
 
 CREATE TABLE policies (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     name TEXT NOT NULL UNIQUE,
     effect policy_effect NOT NULL DEFAULT 'ALLOW',
 
     -- Example:
     -- {
-    --   "offices": [1,2],
-    --   "departments": [3],
-    --   "companies": [1],
+    --   "offices": ["uuid1", "uuid2"],
+    --   "departments": ["uuid3"],
+    --   "companies": ["uuid4"],
     --   "hierarchy": "LOWER"
     -- }
     rules JSONB NOT NULL DEFAULT '{}'::jsonb,
@@ -24,7 +24,7 @@ CREATE TABLE policies (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
     CONSTRAINT chk_policies_rules_object
-    CHECK (jsonb_typeof(rules) = 'object')
+        CHECK (jsonb_typeof(rules) = 'object')
 );
 
 CREATE INDEX idx_policies_rules_gin
@@ -32,11 +32,11 @@ ON policies
 USING GIN (rules);
 
 CREATE TABLE role_policy_assignments (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
-    role_id BIGINT NOT NULL,
-    resource_id BIGINT NOT NULL,
-    policy_id BIGINT NOT NULL,
+    role_id UUID NOT NULL,
+    resource_id UUID NOT NULL,
+    policy_id UUID NOT NULL,
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -49,7 +49,7 @@ CREATE TABLE role_policy_assignments (
         REFERENCES roles(id)
         ON DELETE CASCADE,
 
-    CONSTRAINT fk_rpa_permission
+    CONSTRAINT fk_rpa_resource
         FOREIGN KEY (resource_id)
         REFERENCES resources(id)
         ON DELETE CASCADE,
@@ -67,16 +67,16 @@ CREATE INDEX idx_rpa_policy
 ON role_policy_assignments(policy_id);
 
 CREATE TABLE user_policy_assignments (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
-    user_id BIGINT NOT NULL,
-    resource_id BIGINT NOT NULL,
-    policy_id BIGINT NOT NULL,
+    user_id UUID NOT NULL,
+    resource_id UUID NOT NULL,
+    policy_id UUID NOT NULL,
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-    CONSTRAINT uq_user_permission_policy
+    CONSTRAINT uq_user_resource_policy
         UNIQUE (user_id, resource_id, policy_id),
 
     CONSTRAINT fk_upa_user
@@ -84,7 +84,7 @@ CREATE TABLE user_policy_assignments (
         REFERENCES users(id)
         ON DELETE CASCADE,
 
-    CONSTRAINT fk_upa_permission
+    CONSTRAINT fk_upa_resource
         FOREIGN KEY (resource_id)
         REFERENCES resources(id)
         ON DELETE CASCADE,

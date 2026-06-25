@@ -12,6 +12,8 @@ import (
 const getPolicies = `-- name: GetPolicies :many
 
 SELECT
+    p.id,
+    p.name,
     p.effect,
     p.rules
 FROM user_policy_assignments upa
@@ -24,6 +26,8 @@ WHERE
 UNION ALL
 
 SELECT
+    p.id,
+    p.name,
     p.effect,
     p.rules
 FROM users u
@@ -42,6 +46,8 @@ type GetPoliciesParams struct {
 }
 
 type GetPoliciesRow struct {
+	ID     int64        `json:"id"`
+	Name   string       `json:"name"`
 	Effect PolicyEffect `json:"effect"`
 	Rules  []byte       `json:"rules"`
 }
@@ -55,7 +61,12 @@ func (q *Queries) GetPolicies(ctx context.Context, arg GetPoliciesParams) ([]Get
 	items := []GetPoliciesRow{}
 	for rows.Next() {
 		var i GetPoliciesRow
-		if err := rows.Scan(&i.Effect, &i.Rules); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Effect,
+			&i.Rules,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

@@ -3,9 +3,9 @@
 
 CREATE OR REPLACE FUNCTION scope_users(
     p_scope text,
-    p_manager_id bigint DEFAULT NULL
+    p_manager_id uuid DEFAULT NULL
 )
-RETURNS TABLE(user_id bigint)
+RETURNS TABLE(user_id uuid)
 LANGUAGE plpgsql
 STABLE
 AS $$
@@ -33,7 +33,7 @@ BEGIN
         RETURN QUERY
         SELECT u.id
         FROM users u
-        WHERE u.reporting_to = p_manager_id;
+        WHERE u.report_to = p_manager_id;
 
         RETURN;
 
@@ -56,27 +56,19 @@ BEGIN
     -- ALL REPORTS (RECURSIVE)
     --------------------------------------------------------------------
     RETURN QUERY
-
     WITH RECURSIVE reports(user_id) AS (
 
-        --------------------------------------------------------
-        -- Direct reports
-        --------------------------------------------------------
         SELECT u.id
         FROM users u
-        WHERE u.reporting_to = p_manager_id
+        WHERE u.report_to = p_manager_id
 
         UNION ALL
 
-        --------------------------------------------------------
-        -- Child reports
-        --------------------------------------------------------
         SELECT child.id
         FROM users child
         JOIN reports parent
-            ON child.reporting_to = parent.user_id
+            ON child.report_to = parent.user_id
     )
-
     SELECT DISTINCT reports.user_id
     FROM reports;
 
@@ -86,17 +78,20 @@ $$;
 
 CREATE OR REPLACE FUNCTION filter_users(
     p_scope text,
-    p_manager_id bigint DEFAULT NULL,
+    p_manager_id uuid DEFAULT NULL,
 
-    p_office_ids bigint[] DEFAULT NULL,
-    p_department_ids bigint[] DEFAULT NULL,
-    p_company_ids bigint[] DEFAULT NULL,
+    p_office_ids uuid[] DEFAULT NULL,
+    p_department_ids uuid[] DEFAULT NULL,
+
+    -- remove if you don't have companies table
+    p_company_ids uuid[] DEFAULT NULL,
+
     p_employment_types text[] DEFAULT NULL,
 
     p_my_hierarchy bigint DEFAULT NULL,
     p_hierarchy_mode text DEFAULT NULL
 )
-RETURNS TABLE(user_id bigint)
+RETURNS TABLE(user_id uuid)
 LANGUAGE sql
 STABLE
 AS $$
@@ -159,16 +154,16 @@ $$;
 
 -- +goose StatementEnd
 
--- +goose Down
 
+-- +goose Down
 -- +goose StatementBegin
 
 DROP FUNCTION IF EXISTS filter_users(
     text,
-    bigint,
-    bigint[],
-    bigint[],
-    bigint[],
+    uuid,
+    uuid[],
+    uuid[],
+    uuid[],
     text[],
     bigint,
     text
@@ -176,7 +171,7 @@ DROP FUNCTION IF EXISTS filter_users(
 
 DROP FUNCTION IF EXISTS scope_users(
     text,
-    bigint
+    uuid
 );
 
 -- +goose StatementEnd
